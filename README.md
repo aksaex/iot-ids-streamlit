@@ -1,3 +1,4 @@
 # iot-ids-streamlit
 
-![Uploading {3A40CD25-D4B0-48A1-B0C2-5101C5E79921}.png…]()
+<img width="949" height="540" alt="dashboard" src="https://github.com/user-attachments/assets/08972559-66c8-45da-9403-79afd86af051" />
+
