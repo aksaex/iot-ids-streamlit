@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -11,17 +10,131 @@ from datetime import datetime
 # Konfigurasi halaman
 # ============================================================
 st.set_page_config(
-    page_title="IoT IDS — RT-IoT2022",
+    page_title="SENTINEL — IoT Threat Detection",
     page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
+# ============================================================
+# CSS TAKTIS — Dark Command Center
+# ============================================================
+st.markdown("""
+<style>
+/* 1. Sembunyikan header, footer, menu bawaan Streamlit */
+header[data-testid="stHeader"] { display: none !important; }
+#MainMenu { visibility: hidden; }
+footer { visibility: hidden; }
+
+/* 2. Judul utama — efek neon */
+h1 {
+    color: #00ff9d !important;
+    text-shadow: 0 0 12px rgba(0, 255, 157, 0.4);
+    letter-spacing: 1.5px;
+    font-weight: 700 !important;
+}
+
+/* 3. Subjudul seksi */
+h2, h3 {
+    color: #00ff9d !important;
+    letter-spacing: 0.8px;
+}
+
+/* 4. Kartu metrik gaya HUD */
+div[data-testid="stMetric"] {
+    background: linear-gradient(145deg, #0f172a, #111827);
+    border: 1px solid #1f2937;
+    border-left: 3px solid #00ff9d;
+    border-radius: 8px;
+    padding: 16px 20px;
+    box-shadow: 0 0 12px rgba(0, 255, 157, 0.08),
+                inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+div[data-testid="stMetric"] label {
+    color: #94a3b8 !important;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-size: 0.75rem !important;
+}
+div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
+    color: #00ff9d !important;
+    font-weight: 700;
+    text-shadow: 0 0 8px rgba(0, 255, 157, 0.3);
+}
+
+/* 5. Tombol primer — glow hijau */
+div.stButton > button[kind="primary"] {
+    background: #00ff9d !important;
+    color: #0a0e17 !important;
+    border: none !important;
+    font-weight: 700 !important;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    padding: 12px 24px;
+    box-shadow: 0 0 14px rgba(0, 255, 157, 0.35);
+    transition: all 0.2s ease;
+}
+div.stButton > button[kind="primary"]:hover {
+    box-shadow: 0 0 24px rgba(0, 255, 157, 0.65);
+    transform: translateY(-1px);
+}
+
+/* 6. Tombol sekunder */
+div.stButton > button {
+    border: 1px solid #00ff9d;
+    color: #00ff9d;
+    background: transparent;
+    letter-spacing: 0.8px;
+}
+div.stButton > button:hover {
+    background: rgba(0, 255, 157, 0.1);
+    color: #00ff9d;
+}
+
+/* 7. Dataframe menyatu dengan latar gelap */
+div[data-testid="stDataFrame"] {
+    border: 1px solid #1f2937;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+/* 8. Slider — aksen neon */
+div[data-testid="stSlider"] [data-baseweb="slider"] div[role="slider"] {
+    background: #00ff9d !important;
+    box-shadow: 0 0 10px rgba(0, 255, 157, 0.6) !important;
+}
+
+/* 9. Sidebar */
+section[data-testid="stSidebar"] {
+    border-right: 1px solid #1f2937;
+    background: #0d1117;
+}
+
+/* 10. Divider */
+hr { border-color: #1f2937 !important; }
+
+/* 11. Caption */
+div[data-testid="stCaptionContainer"], .stCaption, small {
+    color: #64748b !important;
+    letter-spacing: 0.5px;
+}
+
+/* 12. Alert */
+div[data-testid="stAlert"] {
+    border-radius: 6px;
+    border-left-width: 4px;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ============================================================
+# Konstanta
+# ============================================================
 CAT_COLS = ["proto", "service"]
 MODEL_DIR = Path(__file__).parent / "models"
 
 # ============================================================
-# Load model (cached — sekali saja per sesi)
+# Load model (cached)
 # ============================================================
 @st.cache_resource(show_spinner="🔄 Memuat model ...")
 def load_models():
@@ -43,9 +156,8 @@ except Exception as e:
     st.error(f"❌ Gagal load model: {e}")
     st.stop()
 
-# Ambil daftar kolom wajib dari model XGB (pipeline sudah menyimpan urutan fitur)
 XGB_FEATURES = list(xgb_model.feature_names_in_)
-REQUIRED_COLS = XGB_FEATURES  # 83 kolom
+REQUIRED_COLS = XGB_FEATURES
 
 # ============================================================
 # Sidebar — pengaturan
@@ -83,10 +195,35 @@ st.sidebar.markdown(
 )
 
 # ============================================================
-# Header
+# Header + HUD Status
 # ============================================================
-st.title("🛡️ IoT Intrusion Detection System")
-st.caption("Deteksi serangan siber pada trafik jaringan IoT menggunakan model ML terlatih.")
+st.title("🛡️ SENTINEL — IoT Threat Detection")
+st.caption("TACTICAL COMMAND CENTER · RT-IoT2022 · Real-time Traffic Classification")
+
+eval_summary = meta.get("evaluation_summary", {})
+f1_key = "catboost" if model_choice == "CatBoost" else "xgboost"
+f1 = eval_summary.get(f1_key, {}).get("f1_macro")
+f1_str = f"{f1:.4f}" if f1 else "N/A"
+
+st.markdown(f"""
+<div style="
+    display: flex;
+    gap: 28px;
+    padding: 10px 16px;
+    background: linear-gradient(90deg, rgba(0,255,157,0.10), transparent);
+    border-left: 3px solid #00ff9d;
+    border-radius: 4px;
+    margin: 8px 0 20px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+">
+    <span style="color:#00ff9d;">● SYSTEM ONLINE</span>
+    <span style="color:#94a3b8;">MODEL: <b style="color:#00ff9d;">{model_choice.upper()}</b></span>
+    <span style="color:#94a3b8;">THRESHOLD: <b style="color:#00ff9d;">{threshold:.2f}</b></span>
+    <span style="color:#94a3b8;">LOCKBOX F1: <b style="color:#00ff9d;">{f1_str}</b></span>
+</div>
+""", unsafe_allow_html=True)
 
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -94,15 +231,12 @@ with col1:
 with col2:
     st.metric("Threshold", f"{threshold:.2f}")
 with col3:
-    eval_summary = meta.get("evaluation_summary", {})
-    f1_key = "catboost" if model_choice == "CatBoost" else "xgboost"
-    f1 = eval_summary.get(f1_key, {}).get("f1_macro")
-    st.metric("Lockbox Macro-F1", f"{f1:.4f}" if f1 else "N/A")
+    st.metric("Lockbox Macro-F1", f1_str)
 
 st.markdown("---")
 
 # ============================================================
-# Mode input: upload atau sample
+# Mode input
 # ============================================================
 input_mode = st.radio(
     "Sumber data:",
@@ -124,7 +258,6 @@ if input_mode.startswith("📁"):
             st.success(f"✅ File ter-upload: {df_input.shape[0]:,} baris × {df_input.shape[1]} kolom")
         except Exception as e:
             st.error(f"❌ Gagal baca CSV: {e}")
-
 else:
     st.info("Klik tombol di bawah untuk mengambil 20 baris acak dari lockbox sebagai demo.")
     if st.button("🎲 Ambil sample"):
@@ -142,69 +275,56 @@ else:
             st.success(f"✅ Sample dimuat: {df_input.shape}")
         else:
             st.error("❌ File sample tidak tersedia. Upload CSV manual atau taruh `sample_input.csv` di folder repo.")
-    
+
     if "df_input" in st.session_state and df_input is None:
         df_input = st.session_state["df_input"]
 
 # ============================================================
-# Preview
+# Preview + Prediksi
 # ============================================================
 if df_input is not None:
     st.markdown("### 📋 Preview Data")
     st.dataframe(df_input.head(10), use_container_width=True)
-    
-    # Persiapkan fitur
+
     df_features = df_input.copy()
-    
-    # Drop kolom terlarang kalau ada
     drop_cols = [c for c in ["Unnamed: 0", "Attack_type", "label"] if c in df_features.columns]
     if drop_cols:
         st.info(f"ℹ️ Kolom berikut otomatis di-drop (tidak boleh jadi fitur): {drop_cols}")
         df_features = df_features.drop(columns=drop_cols)
-    
-    # Validasi kolom
+
     missing = [c for c in REQUIRED_COLS if c not in df_features.columns]
     if missing:
         st.error(f"❌ Kolom wajib TIDAK ada di file: {missing[:10]}{' ...' if len(missing)>10 else ''}")
         st.stop()
-    
-    # Urutkan kolom sesuai training
+
     df_features = df_features[REQUIRED_COLS]
-    
-    # Casting kategorikal
     for c in CAT_COLS:
         df_features[c] = df_features[c].astype(str)
-    
-    # ============================================================
-    # Prediksi
-    # ============================================================
+
     st.markdown("---")
     if st.button("🔮 Prediksi", type="primary", use_container_width=True):
         model = cb_model if model_choice == "CatBoost" else xgb_model
-        
+
         with st.spinner(f"⏳ Prediksi {len(df_features):,} baris dengan {model_choice} ..."):
             proba = model.predict_proba(df_features)[:, 1]
             pred = (proba >= threshold).astype(int)
-        
-        # Hasil
+
         df_out = df_input.copy()
         df_out["prediction"] = pred
         df_out["prediction_label"] = df_out["prediction"].map({0: "🟢 Normal", 1: "🔴 Attack"})
         df_out["attack_probability"] = proba.round(6)
-        
-        # Ringkasan
+
         st.markdown("### 📊 Hasil Prediksi")
-        
+
         n_normal = int((pred == 0).sum())
         n_attack = int((pred == 1).sum())
         pct_attack = n_attack / len(pred) * 100
-        
+
         c1, c2, c3 = st.columns(3)
         c1.metric("Total baris", f"{len(pred):,}")
         c2.metric("🟢 Normal", f"{n_normal:,}", f"{100-pct_attack:.2f}%")
         c3.metric("🔴 Attack", f"{n_attack:,}", f"{pct_attack:.2f}%")
-        
-        # Tabel hasil
+
         st.markdown("### 🗂️ Detail per Baris")
         show_cols = ["prediction_label", "attack_probability"] + [
             c for c in df_input.columns[:5] if c not in ["prediction_label", "attack_probability"]
@@ -214,8 +334,7 @@ if df_input is not None:
             use_container_width=True,
             height=350,
         )
-        
-        # Download
+
         st.markdown("### 💾 Download Hasil")
         csv_bytes = df_out.to_csv(index=False).encode("utf-8")
         st.download_button(
@@ -225,7 +344,7 @@ if df_input is not None:
             mime="text/csv",
             use_container_width=True,
         )
-        
+
         st.success(f"✅ Prediksi selesai. Threshold = {threshold:.2f}")
 
 # ============================================================
@@ -233,7 +352,7 @@ if df_input is not None:
 # ============================================================
 st.markdown("---")
 st.caption(
-    "🛡️ IoT IDS · RT-IoT2022 · "
+    "🛡️ SENTINEL · RT-IoT2022 · "
     f"Model: {model_choice} · "
     "Dibangun dengan Streamlit + XGBoost + CatBoost"
 )
