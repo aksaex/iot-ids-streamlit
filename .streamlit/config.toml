@@ -1,9 +1,31 @@
-[theme]
-primaryColor = "#2563eb"
-backgroundColor = "#ffffff"
-secondaryBackgroundColor = "#f3f4f6"
-textColor = "#111827"
-font = "sans serif"
+# ============================================================
+# .streamlit/config.toml
+# Tema: Tactical Command Center (Dark Mode)
+# Aplikasi: SENTINEL — IoT Threat Detection
+# ============================================================
 
+# ---------------- TEMA UTAMA ----------------
+[theme]
+base = "dark"                          # wajib: kunci dark mode native Streamlit
+primaryColor = "#00ff9d"               # hijau neon — aksen taktis (tombol, slider, highlight)
+backgroundColor = "#0a0e17"            # biru-hitam pekat — latar utama
+secondaryBackgroundColor = "#111827"   # panel sidebar, kartu, container
+textColor = "#e0e6ed"                  # teks terang agar kontras tinggi
+font = "monospace"                     # font teknis (Courier-like) untuk nuansa HUD
+
+# ---------------- SIDEBAR ----------------
+[theme.sidebar]
+backgroundColor = "#0d1117"            # sidebar sedikit lebih gelap dari latar
+primaryColor = "#00ff9d"               # aksen neon pada widget sidebar
+textColor = "#e0e6ed"
+secondaryBackgroundColor = "#161b22"   # kartu kecil di dalam sidebar
+
+# ---------------- SERVER ----------------
 [server]
-maxUploadSize = 200
+maxUploadSize = 200                    # batas upload CSV (MB)
+enableStaticServing = false            # tidak perlu serve aset statis
+headless = true                        # wajib untuk deployment cloud
+
+# ---------------- BROWSER ----------------
+[browser]
+gatherUsageStats = false               # matikan telemetry (privasi)
